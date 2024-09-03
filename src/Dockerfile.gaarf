@@ -1,0 +1,5 @@
+FROM docker.io/node:lts-slim
+
+RUN npm install -g google-ads-api-report-fetcher
+
+ENTRYPOINT ["gaarf"]

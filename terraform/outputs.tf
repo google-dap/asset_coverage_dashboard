@@ -1,0 +1,3 @@
+output "dashboard_template_url" {
+  value = "https://lookerstudio.google.com/reporting/create?c.reportId=${urlencode(var.dashboard_template_id)}&c.mode=edit&r.reportName=${urlencode(var.dashboard_report_name)}&ds.accounts.connector=bigQuery&ds.accounts.projectId=${var.project_id}&ds.accounts.type=TABLE&ds.accounts.datasetId=${var.dataset_name}&ds.accounts.tableId=account_list&ds.video.connector=bigQuery&ds.video.projectId=${var.project_id}&ds.video.type=TABLE&ds.video.datasetId=${var.dataset_name}&ds.video.tableId=video_campaign_asset_coverage&ds.dg.connector=bigQuery&ds.dg.projectId=${var.project_id}&ds.dg.type=TABLE&ds.dg.datasetId=${var.dataset_name}&ds.dg.tableId=demand_gen_asset_coverage"
+}
