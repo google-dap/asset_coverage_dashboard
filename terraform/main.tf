@@ -145,7 +145,7 @@ EOF
 
 resource "docker_registry_image" "gcp_artifactory_gaarf" {
   name          = docker_image.gaarf_image.name
-  # keep_remotely = true
+  keep_remotely = true
 }
 
 resource "docker_image" "gaarf_image" {

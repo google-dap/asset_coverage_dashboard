@@ -5,6 +5,9 @@ terraform {
       version = "3.0.2"
     }
   }
+  backend "gcs" {
+    bucket = "asset-dashboard-terraform-state"
+  }
 }
 
 provider "google" {
