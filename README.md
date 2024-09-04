@@ -73,3 +73,7 @@ The architecture of the Asset Coverage Dashboard is largely defined by a Cloud W
 In order to update the solution, clone the latest from the repo (or `git pull` any updates) and then run `terraform apply` again (and reply 'yes' to the prompt after reviewing the changes if needed) from within the `terraform` directory. This should use the existing state stored in GCS and only make changes to any resources that have changed.
 
 **Note:** If you provide different values for certain variables (e.g. `client_id` or `refresh_token`), when running `terraform apply` it will update these values in the deployment. If you'd like to use your previously entered values but don't have them recorded (or you no longer have the `generated.auto.tfvars` file), you can download and use the `backup.auto.tfvars` file from the Cloud Storage bucket that was created (named "agency-assets") by placing it in the `terraform` directory.
+
+## Deleting the Solution
+
+If you no longer want the solution, you can run a `terraform destroy` from the `/terraform/` directory and that will delete and remove most of the solution, with the exception of disabling any Service APIs that were enabled as well as the Cloud Storage bucket that was manually created. **Please Note: _This will also delete the campaign and asset data in BigQuery as well as the BigQuery datasets themselves._**
