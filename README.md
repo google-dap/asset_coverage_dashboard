@@ -14,13 +14,13 @@ To deploy your own instance of this solution, there are a few pre-requisites you
 ](https://groups.google.com/g/agency-asset-dashboard-users)
 - [Google Cloud Project](https://developers.google.com/workspace/guides/create-project)
 - [Google Ads Developer Token](https://developers.google.com/google-ads/api/docs/get-started/dev-token)
-- [Oauth2 Configured for the Google Ads API](https://developers.google.com/google-ads/api/docs/oauth/overview) which will provide the following information:
+- [Oauth2 Configured for the Google Ads API](https://developers.google.com/google-ads/api/docs/oauth/cloud-project) which will provide the following information (you can also refer to [these instructions](https://developers.google.com/google-ads/api/docs/oauth/playground) if you're looking for a guided way to set this up and get a refresh token):
   - A Client ID
   - A Client secret
   - A valid Refresh Token
 - A Google Ads MCC Account ID
 
-Once you have these accounted for you can clone this repository and navigate to the `/terraform/` directory. It is recommended to do this from your [Google Cloud Shell](https://cloud.google.com/shell/docs/launching-cloud-shell) to ensure you have the appropriate tooling, but if you have `gcloud` and `terraform` setup on your machine you should be able to complete the following steps.
+Once you have these accounted for you can clone this repository and navigate to the `/terraform/` directory. It is recommended to do this from your [Google Cloud Shell](https://cloud.google.com/shell/docs/launching-cloud-shell) to ensure you have the appropriate tooling, but if you have `gcloud`, `docker`, and `terraform` setup on your machine you should be able to complete the following steps.
 
 Before provisioning the solution as a whole, you first must create a Cloud Storage bucket to store the Terraform state as well as authenticate to the GCP docker registry.
 
