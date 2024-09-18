@@ -20,23 +20,42 @@ To deploy your own instance of this solution, there are a few pre-requisites you
   - A valid Refresh Token
 - A Google Ads MCC Account ID
 
-Once you have these accounted for you can clone this repository and navigate to the `/terraform/` directory. It is recommended to do this from your [Google Cloud Shell](https://cloud.google.com/shell/docs/launching-cloud-shell) to ensure you have the appropriate tooling, but if you have `gcloud`, `docker`, and `terraform` setup on your machine you should be able to complete the following steps.
+Once you have these accounted for you are ready to proceed with the deployment. It is recommended to use your Google Cloud Shell, in which case you can launch it and clone the repository by selecting the following:
+
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/?cloudshell=true&cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle-marketing-solutions%2Fasset_coverage_dashboard)
+
+If you'd prefer to use a different machine, clone this repository and navigate to the `/terraform/` directory. In this case you should ensure you have `gcloud`, `docker`, and `terraform` setup on your machine and available in your $PATH before proceeding.
 
 Before provisioning the solution as a whole, you first must create a Cloud Storage bucket to store the Terraform state as well as authenticate to the GCP docker registry.
 
 ```bash
 # create Cloud Storage bucket for state
-gcloud storage buckets create gs://asset-dashboard-terraform-state --pap --uniform-bucket-level-access --project=$GOOGLE_CLOUD_PROJECT
+gcloud storage buckets create gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --pap --uniform-bucket-level-access --project=$GOOGLE_CLOUD_PROJECT
 
 # enable versioning on the bucket
-gcloud storage buckets update gs://asset-dashboard-terraform-state --versioning  --project=$GOOGLE_CLOUD_PROJECT
+gcloud storage buckets update gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --versioning  --project=$GOOGLE_CLOUD_PROJECT
+
+# NOTE: Before moving on, you'll want to update the file providers.tf with the name of the bucket you just created.
 
 # authenticate to docker registry
 gcloud auth configure-docker us-central1-docker.pkg.dev
 
 ```
 
-Once these have been completed, you're ready to deploy the solution.
+Once these have been completed, you're ready to continue on to deploy the solution.
+
+If you're using your Cloud Shell, in order to leverage Terraform to provision the entire solution, you'll want to authenticate yourself and override the default Cloud Shell credentials with your own. You can do this using Application Default Credentials and setting your Cloud Shell environment (and thus Terraform) to prefer them.
+
+```bash
+# First login (if prompted indicate 'Y' and follow the instructions)
+gcloud auth login
+
+# Second perform Application Default log (again choosing 'Y' and following the prompt)
+gcloud auth application-default login
+
+# Set the Cloud Shell to use the newly created credentials
+export GOOGLE_APPLICATION_CREDENTIALS=$(find /tmp -name application_default_credentials.json)
+```
 
 >If you'd like, you can create a [tfvars](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files) file to specify any values or value overrides for the solution. Any that are not specified you'll be prompted to enter each time you run a `terraform` command (e.g. `plan` or `apply`). For convenience, these definitions will create a `generated.auto.tfvars` file in the `terraform` directory containing the values for any variables that don't have a default associated, meaning unless you'd like to change them in the future, you'll only need to enter them once. These values will also be stored in a `backup.auto.tfvars` object in Cloud Storage should you need to retrieve them again at a later date.
 
@@ -44,6 +63,7 @@ From within the `terraform` directory, run the following commands:
 
 ```bash
 # initialize terraform and required modules
+# This will likely fail if you haven't updated the providers.tf file with your bucket name.
 terraform init
 
 # enable APIs for programmatic usage and for provisioning resources via Terraform
@@ -77,3 +97,8 @@ In order to update the solution, clone the latest from the repo (or `git pull` a
 ## Deleting the Solution
 
 If you no longer want the solution, you can run a `terraform destroy` from the `/terraform/` directory and that will delete and remove most of the solution, with the exception of disabling any Service APIs that were enabled as well as the Cloud Storage bucket that was manually created. **Please Note: _This will also delete the campaign and asset data in BigQuery as well as the BigQuery datasets themselves._**
+
+## Disclaimer
+** This is not an officially supported Google product.**
+
+Copyright 2024 Google LLC. This solution, including any related sample code or data, is made available on an “as is,” “as available,” and “with all faults” basis, solely for illustrative purposes, and without warranty or representation of any kind. This solution is experimental, unsupported and provided solely for your convenience. Your use of it is subject to your agreements with Google, as applicable, and may constitute a beta feature as defined under those agreements. To the extent that you make any data available to Google in connection with your use of the solution, you represent and warrant that you have all necessary and appropriate rights, consents and permissions to permit Google to use and process that data. By using any portion of this solution, you acknowledge, assume and accept all risks, known and unknown, associated with its usage, including with respect to your deployment of any portion of this solution in your systems, or usage in connection with your business, if at all.

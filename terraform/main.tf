@@ -77,7 +77,7 @@ resource "google_artifact_registry_repository" "image_repository" {
 }
 
 resource "google_storage_bucket" "agency_assets" {
-  name          = "agency-assets"
+  name          = "agency-assets-${var.project_id}"
   location      = upper(var.location)
   force_destroy = true
 
@@ -140,6 +140,7 @@ client_id = "${var.client_id}"
 client_secret = "${var.client_secret}"
 refresh_token = "${var.refresh_token}"
 developer_token = "${var.developer_token}"
+project_id = "${var.project_id}"
 EOF
   bucket = google_storage_bucket.agency_assets.name
 }
@@ -153,6 +154,7 @@ client_id = "${var.client_id}"
 client_secret = "${var.client_secret}"
 refresh_token = "${var.refresh_token}"
 developer_token = "${var.developer_token}"
+project_id = "${var.project_id}"
 EOF
 }
 
@@ -263,6 +265,7 @@ resource "google_workflows_workflow" "agency_assets_wf" {
     AGENCY_ASSETS_DATASET_LOCATION = var.location
     AGENCY_ASSETS_REGION = var.region
     AGENCY_ASSETS_YOUTUBE_KEY = google_apikeys_key.youtube_key.key_string
+    AGENCY_ASSETS_BUCKET = google_storage_bucket.agency_assets.name
   }
 
   source_contents = local.workflow_contents

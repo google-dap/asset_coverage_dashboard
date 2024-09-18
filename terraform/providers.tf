@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  realized_billing_project = var.billing_project != "" ? var.billing_project : var.project_id
+}
+
 terraform {
   required_providers {
     docker = {
@@ -20,7 +24,7 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket = "asset-dashboard-terraform-state"
+    bucket = "asset-dashboard-terraform-state-PROJECT-ID-HERE"
   }
 }
 
@@ -29,7 +33,7 @@ provider "google" {
   region      = var.region
   zone        = var.zone
   user_project_override = var.user_project_override
-  billing_project = var.billing_project
+  billing_project = local.realized_billing_project
 }
 
 provider "docker" {

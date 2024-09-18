@@ -18,9 +18,10 @@ main:
     - init:
         assign:
           - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
-          - ads_config_path: gs://agency-assets/google-ads.yaml
-          - account_script_path: gs://agency-assets/scripts/get_account_list.sql
-          - account_script_bq_path: gs://agency-assets/scripts/process_account_list.sql
+          - gcs_bucket_prefix: ${"gs://" + sys.get_env("AGENCY_ASSETS_BUCKET") + "/"}
+          - ads_config_path: google-ads.yaml
+          - account_script_path: scripts/get_account_list.sql
+          - account_script_bq_path: scripts/process_account_list.sql
           - dataset_location: ${sys.get_env("AGENCY_ASSETS_DATASET_LOCATION")}
           - dataset: "agency_assets_raw"
           - computed_dataset: "agency_assets"
@@ -37,7 +38,7 @@ main:
               containerOverrides:
                 args:
                   - --ads-config
-                  - ${ads_config_path}
+                  - ${gcs_bucket_prefix + ads_config_path}
                   - --customer-id
                   - ${customer_id}
                   - --output
@@ -48,7 +49,7 @@ main:
                   - ${dataset}
                   - --bq.location
                   - ${dataset_location}
-                  - ${account_script_path}
+                  - ${gcs_bucket_prefix + account_script_path}
     - format_account_list:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
@@ -66,7 +67,7 @@ main:
                   - ${computed_dataset}
                   - --macro.source_dataset
                   - ${dataset}
-                  - ${account_script_bq_path}
+                  - ${gcs_bucket_prefix + account_script_bq_path}
         result: gaarf_bq_execution
     - retrieve_account_list:
         call: googleapis.bigquery.v2.jobs.query
@@ -113,7 +114,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -125,7 +126,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/demand_gen_campaign_assets.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/demand_gen_campaign_assets.sql"}
               - carousel_image_assets:
                   call: googleapis.run.v2.projects.locations.jobs.run
                   args:
@@ -136,7 +137,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -148,7 +149,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/carousel_image_assets.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/carousel_image_assets.sql"}
               - video_campaigns:
                   call: googleapis.run.v2.projects.locations.jobs.run
                   args:
@@ -159,7 +160,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -171,7 +172,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/video_campaigns.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/video_campaigns.sql"}
               - video_assets:
                   call: googleapis.run.v2.projects.locations.jobs.run
                   args:
@@ -182,7 +183,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -194,7 +195,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/video_assets.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/video_assets.sql"}
               - link_mapping:
                   call: googleapis.run.v2.projects.locations.jobs.run
                   args:
@@ -205,7 +206,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -217,7 +218,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/link_mapping.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/link_mapping.sql"}
               - customer_info:
                   call: googleapis.run.v2.projects.locations.jobs.run
                   args:
@@ -228,7 +229,7 @@ main:
                         containerOverrides:
                           args:
                             - --ads-config
-                            - ${ads_config_path}
+                            - ${gcs_bucket_prefix + ads_config_path}
                             - --disable-account-expansion
                             - --customer-id
                             - ${account}
@@ -240,7 +241,7 @@ main:
                             - ${dataset}
                             - --bq.location
                             - ${dataset_location}
-                            - gs://agency-assets/scripts/ads/customer.sql
+                            - ${gcs_bucket_prefix + "scripts/ads/customer.sql"}
     - create_union_views:
         for:
           value: table
@@ -265,7 +266,7 @@ main:
                           - --macro.accounts
                           # fun hack to turn an actual array into a comma separated list
                           - ${text.substring(json.encode_to_string(accounts), 1, -1)}
-                          - gs://agency-assets/scripts/postprocess/recreate_union_views.sql
+                          - ${gcs_bucket_prefix + "scripts/postprocess/recreate_union_views.sql"}
 
     - check_for_video_data_table:
         try:
@@ -436,7 +437,7 @@ main:
                           - video_assets
                           - --macro.aspect_table
                           - video_aspect_ratios
-                          - ${"gs://agency-assets/scripts/postprocess/" + script + ".sql"}
+                          - ${gcs_bucket_prefix + "scripts/postprocess/" + script + ".sql"}
     - generate_demand_gen_report:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
@@ -453,7 +454,7 @@ main:
                   - ${dataset}
                   - --macro.dataset
                   - ${computed_dataset}
-                  - gs://agency-assets/scripts/postprocess/demand_gen_asset_coverage.sql
+                  - ${gcs_bucket_prefix + "scripts/postprocess/demand_gen_asset_coverage.sql"}
     - generate_video_campaign_report:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
@@ -470,7 +471,7 @@ main:
                   - ${dataset}
                   - --macro.dataset
                   - ${computed_dataset}
-                  - gs://agency-assets/scripts/postprocess/video_campaign_asset_coverage.sql
+                  - ${gcs_bucket_prefix + "scripts/postprocess/video_campaign_asset_coverage.sql"}
     - finish:
         return: "Yay"
 
