@@ -26,15 +26,15 @@ SELECT
   ad_group_ad.status AS ad_group_ad_status,
   ad_group_ad.ad.id AS ad_group_ad_ad_id,
   ad_group_ad.ad.type AS ad_group_ad_ad_type,
-  ad_group_ad.ad.discovery_multi_asset_ad.marketing_images:asset,
-  ad_group_ad.ad.discovery_multi_asset_ad.square_marketing_images:asset,
-  ad_group_ad.ad.discovery_multi_asset_ad.portrait_marketing_images:asset,
-  ad_group_ad.ad.discovery_multi_asset_ad.logo_images:asset,
-  ad_group_ad.ad.discovery_carousel_ad.carousel_cards:asset,
-  ad_group_ad.ad.discovery_video_responsive_ad.videos:asset,
-  ad_group_ad.ad.discovery_video_responsive_ad.logo_images:asset
+  ad_group_ad.ad.demand_gen_multi_asset_ad.marketing_images:asset,
+  ad_group_ad.ad.demand_gen_multi_asset_ad.square_marketing_images:asset,
+  ad_group_ad.ad.demand_gen_multi_asset_ad.portrait_marketing_images:asset,
+  ad_group_ad.ad.demand_gen_multi_asset_ad.logo_images:asset,
+  ad_group_ad.ad.demand_gen_carousel_ad.carousel_cards:asset,
+  ad_group_ad.ad.demand_gen_video_responsive_ad.videos:asset,
+  ad_group_ad.ad.demand_gen_video_responsive_ad.logo_images:asset
 FROM ad_group_ad
 WHERE
-  campaign.advertising_channel_type = 'DISCOVERY'
+  campaign.advertising_channel_type = 'DEMAND_GEN'
   AND campaign.status = 'ENABLED'
   AND ad_group_ad.status = 'ENABLED'

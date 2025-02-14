@@ -18,9 +18,9 @@ SELECT
   customer.id AS account_id,
   asset.id AS asset_id,
   asset.resource_name AS asset_resource_name,
-  asset.discovery_carousel_card_asset.marketing_image_asset AS carousel_landscape_asset,
-  asset.discovery_carousel_card_asset.square_marketing_image_asset AS carousel_square_asset,
-  asset.discovery_carousel_card_asset.portrait_marketing_image_asset AS carousel_portrait_asset
+  asset.demand_gen_carousel_card_asset.marketing_image_asset AS carousel_landscape_asset,
+  asset.demand_gen_carousel_card_asset.square_marketing_image_asset AS carousel_square_asset,
+  asset.demand_gen_carousel_card_asset.portrait_marketing_image_asset AS carousel_portrait_asset
 FROM
   asset
 WHERE

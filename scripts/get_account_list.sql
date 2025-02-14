@@ -18,4 +18,4 @@ SELECT
   customer.id,
   customer.descriptive_name AS customer_name
 FROM campaign
-WHERE campaign.advertising_channel_type IN ('DISCOVERY', 'VIDEO')
+WHERE campaign.advertising_channel_type IN ('DEMAND_GEN', 'VIDEO')

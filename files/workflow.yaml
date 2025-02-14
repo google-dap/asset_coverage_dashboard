@@ -219,29 +219,6 @@ main:
                             - --bq.location
                             - ${dataset_location}
                             - ${gcs_bucket_prefix + "scripts/ads/link_mapping.sql"}
-              - customer_info:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/customer.sql"}
     - create_union_views:
         for:
           value: table
