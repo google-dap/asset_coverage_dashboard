@@ -21,28 +21,11 @@ To deploy your own instance of this solution, there are a few pre-requisites you
 - A Google Ads MCC Account ID
 
 Once you have these accounted for you are ready to proceed with the deployment. It is recommended to use your Google Cloud Shell, in which case you can launch it and clone the repository by selecting the following:
+(OBS: Be sure to select the checkbox trusting the repository, so we don't get redirected to a terminal on Ephemeral mode)
 
 [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/?cloudshell=true&cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle-marketing-solutions%2Fasset_coverage_dashboard)
 
 If you'd prefer to use a different machine, clone this repository and navigate to the `/terraform/` directory. In this case you should ensure you have `gcloud`, `docker`, and `terraform` setup on your machine and available in your $PATH before proceeding.
-
-Before provisioning the solution as a whole, you first must create a Cloud Storage bucket to store the Terraform state as well as authenticate to the GCP docker registry.
-
-```bash
-# create Cloud Storage bucket for state
-gcloud storage buckets create gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --pap --uniform-bucket-level-access --project=$GOOGLE_CLOUD_PROJECT
-
-# enable versioning on the bucket
-gcloud storage buckets update gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --versioning  --project=$GOOGLE_CLOUD_PROJECT
-
-# NOTE: Before moving on, you'll want to update the file providers.tf with the name of the bucket you just created.
-
-# authenticate to docker registry
-gcloud auth configure-docker us-central1-docker.pkg.dev
-
-```
-
-Once these have been completed, you're ready to continue on to deploy the solution.
 
 If you're using your Cloud Shell, in order to leverage Terraform to provision the entire solution, you'll want to authenticate yourself and override the default Cloud Shell credentials with your own. You can do this using Application Default Credentials and setting your Cloud Shell environment (and thus Terraform) to prefer them.
 
@@ -59,7 +42,22 @@ export GOOGLE_APPLICATION_CREDENTIALS=$(find /tmp -name application_default_cred
 
 >If you'd like, you can create a [tfvars](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files) file to specify any values or value overrides for the solution. Any that are not specified you'll be prompted to enter each time you run a `terraform` command (e.g. `plan` or `apply`). For convenience, these definitions will create a `generated.auto.tfvars` file in the `terraform` directory containing the values for any variables that don't have a default associated, meaning unless you'd like to change them in the future, you'll only need to enter them once. These values will also be stored in a `backup.auto.tfvars` object in Cloud Storage should you need to retrieve them again at a later date.
 
-From within the `terraform` directory, run the following commands:
+Before provisioning the solution as a whole, let's create a Cloud Storage bucket to store the Terraform state as well as authenticate to the GCP docker registry.
+
+```bash
+# create Cloud Storage bucket for state
+gcloud storage buckets create gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --pap --uniform-bucket-level-access --project=$GOOGLE_CLOUD_PROJECT
+
+# enable versioning on the bucket
+gcloud storage buckets update gs://asset-dashboard-terraform-state-$GOOGLE_CLOUD_PROJECT --versioning  --project=$GOOGLE_CLOUD_PROJECT
+
+# NOTE: Before moving on, you'll want to update the file providers.tf with the name of the bucket you just created.
+
+# authenticate to docker registry
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+```
+Now, from within the `terraform` directory, run the following commands:
 
 ```bash
 # initialize terraform and required modules
@@ -69,6 +67,17 @@ terraform init
 # enable APIs for programmatic usage and for provisioning resources via Terraform
 terraform apply -target="null_resource.base_apis" -auto-approve
 terraform apply -target="google_project_service.required_apis" -auto-approve
+
+# provide all the needed permissions
+# you can find the Project Id going to the hamburger menu, clicking at Cloud overview and choosing Dashboard.
+# you can find the Service Account going to the hamburger menu, clicking at IAM & Admin, and choosing the Service Account Options. It's on the format: "9999999999-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/iam.serviceAccountUser;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/run.developer;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/bigquery.admin;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/storage.admin;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/storage.objectAdmin;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/logging.logWriter;
+gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/workflows.invoker
 
 # deploy solution
 terraform apply -auto-approve
@@ -97,6 +106,10 @@ In order to update the solution, clone the latest from the repo (or `git pull` a
 ## Deleting the Solution
 
 If you no longer want the solution, you can run a `terraform destroy` from the `/terraform/` directory and that will delete and remove most of the solution, with the exception of disabling any Service APIs that were enabled as well as the Cloud Storage bucket that was manually created. **Please Note: _This will also delete the campaign and asset data in BigQuery as well as the BigQuery datasets themselves._**
+
+## Troubleshooting
+
+While working on the section of creating the Cloud Storage Bucket for state, or enabling versioning on the Bucket, some users might face an issue indicating that the project do not have the Service Usage API enabled. If that's your case, be sure to have that API enabled, by following the instructions on [this page](https://cloud.google.com/service-usage/docs/set-up-development-environment).
 
 ## Disclaimer
 ** This is not an officially supported Google product.**
