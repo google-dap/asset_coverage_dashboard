@@ -17,68 +17,69 @@ main:
   steps:
     - init:
         assign:
-          - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
-          - gcs_bucket_prefix: ${"gs://" + sys.get_env("AGENCY_ASSETS_BUCKET") + "/"}
-          - ads_config_path: google-ads.yaml
           - account_script_path: scripts/get_account_list.sql
           - account_script_bq_path: scripts/process_account_list.sql
-          - dataset_location: ${sys.get_env("AGENCY_ASSETS_DATASET_LOCATION")}
-          - dataset: "agency_assets_raw"
           - computed_dataset: "agency_assets"
-          - location: ${sys.get_env("AGENCY_ASSETS_REGION")}
           - customer_id: ${sys.get_env("AGENCY_ASSETS_CID")}
           - auth_key: ${sys.get_env("AGENCY_ASSETS_YOUTUBE_KEY")}
+          - cfg:
+              project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+              dataset_location: ${sys.get_env("AGENCY_ASSETS_DATASET_LOCATION")}
+              location: ${sys.get_env("AGENCY_ASSETS_REGION")}
+              dataset: "agency_assets_raw"
+              gcs_bucket_prefix: ${"gs://" + sys.get_env("AGENCY_ASSETS_BUCKET") + "/"}
+              ads_config_path: google-ads.yaml
     - get_account_list:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
-          name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
+          name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf"}
           body:
             overrides:
               timeout: "3600s"
               containerOverrides:
                 args:
                   - --ads-config
-                  - ${gcs_bucket_prefix + ads_config_path}
+                  - ${cfg.gcs_bucket_prefix + cfg.ads_config_path}
                   - --customer-id
                   - ${customer_id}
                   - --output
                   - bq
                   - --bq.project
-                  - ${project_id}
+                  - ${cfg.project_id}
                   - --bq.dataset
-                  - ${dataset}
+                  - ${cfg.dataset}
                   - --bq.location
-                  - ${dataset_location}
-                  - ${gcs_bucket_prefix + account_script_path}
+                  - ${cfg.dataset_location}
+                  - ${cfg.gcs_bucket_prefix + account_script_path}
     - format_account_list:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
-          name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf-bq"}
+          name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf-bq"}
           body:
             overrides:
               timeout: "3600s"
               containerOverrides:
                 args:
                   - --project
-                  - ${project_id}
+                  - ${cfg.project_id}
                   - --dataset-location
-                  - ${dataset_location}
+                  - ${cfg.dataset_location}
                   - --macro.destination_dataset
                   - ${computed_dataset}
                   - --macro.source_dataset
-                  - ${dataset}
-                  - ${gcs_bucket_prefix + account_script_bq_path}
+                  - ${cfg.dataset}
+                  - ${cfg.gcs_bucket_prefix + account_script_bq_path}
         result: gaarf_bq_execution
     - retrieve_account_list:
         call: googleapis.bigquery.v2.jobs.query
         args:
-            projectId: ${project_id}
+            projectId: ${cfg.project_id}
             body:
                 connectionProperties: []
                 defaultDataset:
                     datasetId: ${computed_dataset}
-                    projectId: ${project_id}
-                location: ${dataset_location}
+                    projectId: ${cfg.project_id}
+                location: ${cfg.dataset_location}
                 query: "SELECT customer_id FROM account_list ORDER BY customer_id;"
         result: account_list_result
     - process_account_list_query:
@@ -97,128 +98,49 @@ main:
         call: sys.log
         args:
           data: ${accounts}
-    - perform_ads_queries_loop:
+    - get_gaarf_data:
         parallel:
-          concurrency_limit: 50
-          for:
-            value: account
-            in: ${accounts}
-            steps:
-              - demand_gen_assets:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/demand_gen_campaign_assets.sql"}
-              - carousel_image_assets:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/carousel_image_assets.sql"}
-              - video_campaigns:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/video_campaigns.sql"}
-              - video_assets:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/video_assets.sql"}
-              - link_mapping:
-                  call: googleapis.run.v2.projects.locations.jobs.run
-                  args:
-                    name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf"}
-                    body:
-                      overrides:
-                        timeout: "3600s"
-                        containerOverrides:
-                          args:
-                            - --ads-config
-                            - ${gcs_bucket_prefix + ads_config_path}
-                            - --disable-account-expansion
-                            - --customer-id
-                            - ${account}
-                            - --output
-                            - bq
-                            - --bq.project
-                            - ${project_id}
-                            - --bq.dataset
-                            - ${dataset}
-                            - --bq.location
-                            - ${dataset_location}
-                            - ${gcs_bucket_prefix + "scripts/ads/link_mapping.sql"}
+          branches:
+            - call_demand_gen_assets:
+                steps:
+                  - demand_gen_assets:
+                      call: run_gaarf_query
+                      args:
+                        script_name: "demand_gen_campaign_assets.sql"
+                        accounts: ${accounts}
+                        cfg: ${cfg}
+            - call_carousel_image_assets:
+                steps:
+                  - carousel_image_assets:
+                      call: run_gaarf_query
+                      args:
+                        script_name: "carousel_image_assets.sql"
+                        accounts: ${accounts}
+                        cfg: ${cfg}
+            - call_video_campaigns:
+                steps:
+                  - video_campaigns:
+                      call: run_gaarf_query
+                      args:
+                        script_name: "video_campaigns.sql"
+                        accounts: ${accounts}
+                        cfg: ${cfg}
+            - call_video_assets:
+               steps:
+                  - video_assets:
+                      call: run_gaarf_query
+                      args:
+                        script_name: "video_assets.sql"
+                        accounts: ${accounts}
+                        cfg: ${cfg}
+            - call_link_mapping:
+                steps:
+                  - link_mapping:
+                      call: run_gaarf_query
+                      args:
+                        script_name: "link_mapping.sql"
+                        accounts: ${accounts}
+                        cfg: ${cfg}
     - create_union_views:
         for:
           value: table
@@ -227,23 +149,23 @@ main:
             - recreate_view:
                 call: googleapis.run.v2.projects.locations.jobs.run
                 args:
-                  name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf-bq"}
+                  name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf-bq"}
                   body:
                     overrides:
                       containerOverrides:
                         args:
                           - --project
-                          - ${project_id}
+                          - ${cfg.project_id}
                           - --dataset-location
-                          - ${dataset_location}
+                          - ${cfg.dataset_location}
                           - --macro.dataset
-                          - ${dataset}
+                          - ${cfg.dataset}
                           - --macro.table
                           - ${table}
                           - --macro.accounts
                           # fun hack to turn an actual array into a comma separated list
                           - ${text.substring(json.encode_to_string(accounts), 1, -1)}
-                          - ${gcs_bucket_prefix + "scripts/postprocess/recreate_union_views.sql"}
+                          - ${cfg.gcs_bucket_prefix + "scripts/postprocess/recreate_union_views.sql"}
 
     - check_for_video_data_table:
         try:
@@ -251,8 +173,8 @@ main:
             - get_video_data_table:
                 call: googleapis.bigquery.v2.tables.get
                 args:
-                  datasetId: ${dataset}
-                  projectId: ${project_id}
+                  datasetId: ${cfg.dataset}
+                  projectId: ${cfg.project_id}
                   tableId: video_aspect_ratios
                 result: get_table_result
             - log_get_table_result:
@@ -271,14 +193,14 @@ main:
                       - truncate_video_data_table:
                           call: googleapis.bigquery.v2.jobs.insert
                           args:
-                            projectId: ${project_id}
+                            projectId: ${cfg.project_id}
                             body:
                               configuration:
                                 query:
                                   query: SELECT "xxxx" AS video_id, "xyz" AS embedHtml, -1 AS embedHeight, -1 AS embedWidth
                                   destinationTable:
-                                    projectId: ${project_id}
-                                    datasetId: ${dataset}
+                                    projectId: ${cfg.project_id}
+                                    datasetId: ${cfg.dataset}
                                     tableId: video_aspect_ratios
                                   create_disposition: "CREATE_IF_NEEDED"
                                   useLegacySql: false
@@ -288,13 +210,13 @@ main:
     - accumulate_video_ids:
         call: googleapis.bigquery.v2.jobs.query
         args:
-            projectId: ${project_id}
+            projectId: ${cfg.project_id}
             body:
                 connectionProperties: []
                 defaultDataset:
-                    datasetId: ${dataset}
-                    projectId: ${project_id}
-                location: ${dataset_location}
+                    datasetId: ${cfg.dataset}
+                    projectId: ${cfg.project_id}
+                location: ${cfg.dataset_location}
                 query: "SELECT video_id FROM video_assets WHERE video_id IS NOT NULL AND video_id NOT IN (SELECT video_id FROM video_aspect_ratios) ORDER BY video_id;"
                 useLegacySql: false
         result: video_id_list_result
@@ -371,8 +293,8 @@ main:
                           try:
                             call: googleapis.bigquery.v2.tabledata.insertAll
                             args:
-                                projectId: ${project_id}
-                                datasetId: ${dataset}
+                                projectId: ${cfg.project_id}
+                                datasetId: ${cfg.dataset}
                                 tableId: video_aspect_ratios
                                 body:
                                     rows: ${video_id_results}
@@ -397,58 +319,58 @@ main:
             - run_bq_script:
                 call: googleapis.run.v2.projects.locations.jobs.run
                 args:
-                  name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf-bq"}
+                  name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf-bq"}
                   body:
                     overrides:
                       containerOverrides:
                         args:
                           - --project
-                          - ${project_id}
+                          - ${cfg.project_id}
                           - --dataset-location
-                          - ${dataset_location}
+                          - ${cfg.dataset_location}
                           - --macro.source_dataset
-                          - ${dataset}
+                          - ${cfg.dataset}
                           - --macro.destination_dataset
                           - ${computed_dataset}
                           - --macro.asset_table
                           - video_assets
                           - --macro.aspect_table
                           - video_aspect_ratios
-                          - ${gcs_bucket_prefix + "scripts/postprocess/" + script + ".sql"}
+                          - ${cfg.gcs_bucket_prefix + "scripts/postprocess/" + script + ".sql"}
     - generate_demand_gen_report:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
-          name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf-bq"}
+          name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf-bq"}
           body:
             overrides:
               containerOverrides:
                 args:
                   - --project
-                  - ${project_id}
+                  - ${cfg.project_id}
                   - --dataset-location
-                  - ${dataset_location}
+                  - ${cfg.dataset_location}
                   - --macro.raw_dataset
-                  - ${dataset}
+                  - ${cfg.dataset}
                   - --macro.dataset
                   - ${computed_dataset}
-                  - ${gcs_bucket_prefix + "scripts/postprocess/demand_gen_asset_coverage.sql"}
+                  - ${cfg.gcs_bucket_prefix + "scripts/postprocess/demand_gen_asset_coverage.sql"}
     - generate_video_campaign_report:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
-          name: ${"projects/" + project_id + "/locations/" + location + "/jobs/gaarf-bq"}
+          name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf-bq"}
           body:
             overrides:
               containerOverrides:
                 args:
                   - --project
-                  - ${project_id}
+                  - ${cfg.project_id}
                   - --dataset-location
-                  - ${dataset_location}
+                  - ${cfg.dataset_location}
                   - --macro.raw_dataset
-                  - ${dataset}
+                  - ${cfg.dataset}
                   - --macro.dataset
                   - ${computed_dataset}
-                  - ${gcs_bucket_prefix + "scripts/postprocess/video_campaign_asset_coverage.sql"}
+                  - ${cfg.gcs_bucket_prefix + "scripts/postprocess/video_campaign_asset_coverage.sql"}
     - finish:
         return: "Yay"
 
@@ -504,3 +426,35 @@ custom_bqinsert_retry_predicate:
             return: true
     - otherwise:
         return: false
+
+
+run_gaarf_query:
+  params: [script_name, accounts, cfg] # It accepts the base name
+  steps:
+    - run_the_job:
+        call: googleapis.run.v2.projects.locations.jobs.run
+        args:
+          name: ${"projects/" + cfg.project_id + "/locations/" + cfg.location + "/jobs/gaarf"}
+          body:
+            overrides:
+              timeout: "3600s"
+              containerOverrides:
+                args:
+                  - --ads-config
+                  - ${cfg.gcs_bucket_prefix + cfg.ads_config_path}
+                  - --disable-account-expansion
+                  - --customer-id
+                  - ${text.replace_all(text.substring(json.encode_to_string(accounts), 1, -1), "\"", "")}
+                  - --output
+                  - bq
+                  - --bq.project
+                  - ${cfg.project_id}
+                  - --bq.dataset
+                  - ${cfg.dataset}
+                  - --bq.location
+                  - ${cfg.dataset_location}
+                  - ${cfg.gcs_bucket_prefix + "scripts/ads/" + script_name}
+                  - --bg.no-union-view 1
+        result: job_result
+    - return_job_result:
+        return: ${job_result}

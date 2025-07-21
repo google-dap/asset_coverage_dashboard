@@ -24,4 +24,4 @@ SELECT
 FROM
   asset
 WHERE
-  asset.type = 'DISCOVERY_CAROUSEL_CARD'
+  asset.type = 'DEMAND_GEN_CAROUSEL_CARD'

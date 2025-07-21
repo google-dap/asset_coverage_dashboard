@@ -19,6 +19,10 @@ To deploy your own instance of this solution, there are a few pre-requisites you
   - A Client secret
   - A valid Refresh Token
 - A Google Ads MCC Account ID
+- Enable Google APIs on GCP project:
+  - Service Usage API
+  - Compute engine API
+  - Identity and Access Managment API
 
 Once you have these accounted for you are ready to proceed with the deployment. It is recommended to use your Google Cloud Shell, in which case you can launch it and clone the repository by selecting the following:
 (OBS: Be sure to select the checkbox trusting the repository, so we don't get redirected to a terminal on Ephemeral mode)
@@ -67,17 +71,6 @@ terraform init
 # enable APIs for programmatic usage and for provisioning resources via Terraform
 terraform apply -target="null_resource.base_apis" -auto-approve
 terraform apply -target="google_project_service.required_apis" -auto-approve
-
-# provide all the needed permissions
-# you can find the Project Id going to the hamburger menu, clicking at Cloud overview and choosing Dashboard.
-# you can find the Service Account going to the hamburger menu, clicking at IAM & Admin, and choosing the Service Account Options. It's on the format: "9999999999-compute@developer.gserviceaccount.com"
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/iam.serviceAccountUser;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/run.developer;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/bigquery.admin;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/storage.admin;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/storage.objectAdmin;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/logging.logWriter;
-gcloud projects add-iam-policy-binding <REPLACE-HERE-WITH-THE-PROJECT-ID> --member=serviceAccount:<REPLACE-HERE-WITH-THE-SERVICE-ACCOUNT> --role=roles/workflows.invoker
 
 # deploy solution
 terraform apply -auto-approve
