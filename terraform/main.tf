@@ -35,7 +35,12 @@ locals {
 }
 
 resource "null_resource" "base_apis" {
-  for_each = toset(["serviceusage.googleapis.com", "cloudresourcemanager.googleapis.com"])
+  for_each = toset([
+    "serviceusage.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
+    "compute.googleapis.com",
+    "iam.googleapis.com"
+  ])
   provisioner "local-exec" {
     command = "gcloud services enable $SERVICE --project $PROJECT"
 

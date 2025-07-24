@@ -23,6 +23,7 @@ To deploy your own instance of this solution, there are a few pre-requisites you
   - Service Usage API
   - Compute engine API
   - Identity and Access Managment API
+  - Cloud Resource Manager API
 
 Once you have these accounted for you are ready to proceed with the deployment. It is recommended to use your Google Cloud Shell, in which case you can launch it and clone the repository by selecting the following:
 (OBS: Be sure to select the checkbox trusting the repository, so we don't get redirected to a terminal on Ephemeral mode)
